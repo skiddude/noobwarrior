@@ -23,8 +23,6 @@ jobs:
 
     - name: Set up MSVC environment (Visual Studio 2022)
       uses: ilammy/msvc-dev-cmd@v1
-      with:
-        toolset: '14.3'
 
     - name: Set up Python
       uses: actions/setup-python@v5
