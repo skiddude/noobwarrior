@@ -27,7 +27,7 @@ jobs:
         toolset: '14.3'
 
     - name: Set up Ninja
-      uses: jmatsu/setup-ninja@v2
+      uses: ninja-build/ninja-build-action@v1
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -35,12 +35,12 @@ jobs:
         python-version: '3.x'
 
     - name: Install Qt
-      uses: jurplel/install-qt@v4
+      uses: jurplel/install-qt-action@v4
       with:
         version: '6.7.2'
         host: 'windows'
         target: 'desktop'
-        arch: 'win64_msvc2019_64' # Standard Qt6 binaries for MSVC 2019/2022 ABI compatibility
+        arch: 'win64_msvc2019_64'
 
     - name: Set up vcpkg
       uses: lukka/run-vcpkg@v11
@@ -54,7 +54,10 @@ jobs:
 
     - name: Build project
       run: cmake --build build --config ${{ env.BUILD_TYPE }}
-      
+
+    - name: Run tests
+      run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
+
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
