@@ -1,0 +1,62 @@
+name: Build (MSVC)
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    env:
+      BUILD_TYPE: Release
+      VCPKG_FEATURE_FLAGS: binarycaching
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up MSVC environment (Visual Studio 2022)
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        toolset: '14.3'
+
+    - name: Set up Ninja
+      uses: jmatsu/setup-ninja@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Qt
+      uses: jurplel/install-qt@v4
+      with:
+        version: '6.7.2'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64' # Standard Qt6 binaries for MSVC 2019/2022 ABI compatibility
+
+    - name: Set up vcpkg
+      uses: lukka/run-vcpkg@v11
+
+    - name: Configure CMake
+      run: >
+        cmake -B build -G "Ninja"
+        -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+        -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
+
+    - name: Build project
+      run: cmake --build build --config ${{ env.BUILD_TYPE }}
+      
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: msvc-build-artifact
+        path: build/
