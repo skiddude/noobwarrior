@@ -1,4 +1,4 @@
-name: Build (MSVC)
+name: Build (MinGW g++ / Qt5)
 
 on:
   push:
@@ -11,31 +11,24 @@ jobs:
   build:
     runs-on: windows-2022
 
-    env:
-      BUILD_TYPE: Release
-      VCPKG_FEATURE_FLAGS: binarycaching
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: recursive
 
-    - name: Set up MSVC environment (Visual Studio 2022)
-      uses: ilammy/msvc-dev-cmd@v1
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Set up MinGW (g++)
+      uses: egor-tisin/setup-mingw@v2
       with:
-        python-version: '3.x'
+        version: '12.2.0'
 
-    - name: Install Qt
+    - name: Install Qt 5.15.2
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.7.2'
+        version: '5.15.2'
         host: 'windows'
         target: 'desktop'
-        arch: 'win64_msvc2019_64'
+        arch: 'win64_mingw81'
         modules: 'qtmultimedia'
 
     - name: Set up vcpkg
@@ -44,16 +37,20 @@ jobs:
     - name: Configure CMake
       run: >
         cmake -B build -G "Ninja"
-        -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=g++
+        -DCMAKE_C_COMPILER=gcc
         -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-        -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
-        -DCMAKE_CXX_FLAGS="-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE /permissive+ /EHsc"
-        
-    - name: Build project
-      run: cmake --build build --config ${{ env.BUILD_TYPE }}
+        -DCMAKE_PREFIX_PATH="${{ env.Qt5_DIR }}"
 
-    - name: Upload build artifact
+    - name: Build project
+      run: cmake --build build --config Release
+
+    - name: Deploy Qt Dependencies
+      run: windeployqt --compiler-runtime build/Release/your_executable_name.exe
+
+    - name: Upload Windows 8.1 Compatible Build
       uses: actions/upload-artifact@v4
       with:
-        name: msvc-build-artifact
-        path: build/
+        name: win81-mingw-build
+        path: build/Release/
