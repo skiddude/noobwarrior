@@ -17,10 +17,14 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Set up MinGW (g++)
-      uses: egor-tisin/setup-mingw@v2
+    - name: Set up MSYS2 / MinGW-w64
+      uses: msys2/setup-msys2@v2
       with:
-        version: '12.2.0'
+        msystem: UCRT64
+        install: >-
+          mingw-w64-ucrt-x86_64-gcc
+          mingw-w64-ucrt-x86_64-ninja
+          mingw-w64-ucrt-x86_64-cmake
 
     - name: Install Qt 5.15.2
       uses: jurplel/install-qt-action@v4
@@ -35,22 +39,21 @@ jobs:
       uses: lukka/run-vcpkg@v11
 
     - name: Configure CMake
+      shell: msys2 {0}
       run: >
         cmake -B build -G "Ninja"
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_CXX_COMPILER=g++
         -DCMAKE_C_COMPILER=gcc
-        -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-        -DCMAKE_PREFIX_PATH="${{ env.Qt5_DIR }}"
+        -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        -DCMAKE_PREFIX_PATH="${Qt5_DIR}"
 
     - name: Build project
+      shell: msys2 {0}
       run: cmake --build build --config Release
-
-    - name: Deploy Qt Dependencies
-      run: windeployqt --compiler-runtime build/Release/your_executable_name.exe
 
     - name: Upload Windows 8.1 Compatible Build
       uses: actions/upload-artifact@v4
       with:
         name: win81-mingw-build
-        path: build/Release/
+        path: build/
